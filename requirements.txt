@@ -4,3 +4,7 @@ feedgen
 lxml
 pytz
 langdetect
+flask
+apscheduler
+DrissionPage
+cloudscraper
