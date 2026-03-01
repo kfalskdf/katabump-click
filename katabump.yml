@@ -1,0 +1,65 @@
+name: Katabump Auto
+
+on:
+  schedule:
+    # 每天早上 6 点运行 (北京时间下午2点 = UTC 6点)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  katabump:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 lxml cloudscraper DrissionPage
+      
+      - name: Install Chrome/Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+      
+      - name: Set environment variables
+        run: |
+          echo "TZ=Asia/Shanghai" >> $GITHUB_ENV
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+      
+      - name: Run Katabump automation
+        run: python katabump_auto.py
+      
+      - name: Check for changes
+        id: check
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Commit and push
+        if: steps.check.outputs.changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git commit -m "Katabump auto update - $(date '+%Y-%m-%d %H:%M')"
+          git push
